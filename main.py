@@ -47,6 +47,6 @@ def train(style_img_path, content_img_path):
 
 if __name__ == "__main__":
     # Run our training loop on some images
-    style_img = 'data/udnie.jpg'
-    input_img = 'data/chicago.jpg'
+    style_img = 'data/monet.jpg'
+    input_img = 'data/tompkin.jpg'
     train(style_img, input_img)
