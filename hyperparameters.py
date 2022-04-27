@@ -5,7 +5,7 @@ max_dim = 512
 loss_weights = (1e-2, 1e4)
 
 # Number of epochs run
-num_epochs = 100
+num_epochs = 1000
 
 # Number of iterations until we save
-save_every = 10
+save_every = 100

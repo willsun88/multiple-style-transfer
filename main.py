@@ -1,8 +1,4 @@
 import tensorflow as tf
-from tensorflow.keras.applications import vgg19
-from PIL import Image
-import numpy as np
-import matplotlib.pyplot as plt
 from helpers import import_image, unprocess_image, weighted_loss, VGG_Model
 import hyperparameters as hyp
 from os import mkdir, path
