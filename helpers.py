@@ -12,8 +12,13 @@ def gram_mat(x):
     return res / (tf.cast(x.shape[1]*x.shape[2], tf.float32))
 
 class VGG_Model(tf.keras.models.Model):
+    """
+    Class to run the VGG model on style/content images.
+    """
     def __init__(self):
         super(VGG_Model, self).__init__()
+        # Define the blocks we will use to represent content and style.
+        # Taken from the paper's choice of blocks from VGG19.
         self.content_layers = ['block5_conv2'] 
         self.style_layers = [
             'block1_conv1',
@@ -23,25 +28,43 @@ class VGG_Model(tf.keras.models.Model):
             'block5_conv1'
         ]
 
-        self.vgg = VGG19(include_top=False, weights='imagenet')
-        self.vgg.trainable = False
-        outp = [self.vgg.get_layer(x).output 
+        # Initialize a VGG19 model that will return the layers we want.
+        vgg = VGG19(include_top=False, weights='imagenet')
+        vgg.trainable = False
+        outp = [vgg.get_layer(x).output 
             for x in self.style_layers + self.content_layers]
-        self.model = tf.keras.Model([self.vgg.input], outp)
+        self.model = tf.keras.Model([vgg.input], outp)
 
+        # Initialize our optimizer.
         self.optim = tf.optimizers.Adam(learning_rate=0.01)
     
     def call(self, x):
+        # Process the input and run it through the model.
         # Note: Input expected to be already pre-processed.
         x = vgg19.preprocess_input(x*255.0)
         out = self.model(x)
-        # print([x.shape for x in out])
+
+        # Split content and style, and run style layers through the gram matrix
+        # function.
         style, content = out[:len(self.style_layers)], out[len(self.style_layers):]
         style = [gram_mat(layer) for layer in style]
         return (style, content)
 
 def weighted_loss(style, content, targets, loss_weights):
-    # Note: assume set_targets has run
+    """
+    Calculates a loss weighted between style reconstruction loss and 
+    content reconstruction loss. 
+    params:
+        style - a tensor representing the style outputs 
+        content - a tensor representing the content outputs
+        targets - a tuple where the first element is the target style output 
+            (the style output of the style image) and the second element is 
+            the target content output (the content output of the content image)
+        loss_weights - a tuple where the first element is the weight given to 
+            the style reconstruction loss and the second element is the weight 
+            given to the content reconstruction loss.
+    output: a float representing the weighted loss
+    """
     style_losses = [tf.reduce_mean((style[i]-targets[0][i])**2) 
                         for i in range(len(style))]
     style_loss = tf.reduce_sum(style_losses)
@@ -57,6 +80,10 @@ def weighted_loss(style, content, targets, loss_weights):
 def import_image(file_path):
     """
     Imports an image from a file path and pre-processes it for VGG.
+    params:
+        file_path - a string representing the relative file path of the image
+    output: a tensor representing the image, processed into the shape needed 
+        for the call to an instance of VGG_Model.
     """
     img = tf.io.read_file(file_path)
     img = tf.image.decode_image(img, 3)
@@ -71,8 +98,13 @@ def import_image(file_path):
 def unprocess_image(img):
     """
     Reverses formatted image processing for display.
+    params:
+        img - a tensor representing an image that has been processed by 
+            import_image
+    output: a PIL image instance of the image 
     """
     copy = img.numpy().copy()*255.0
     if len(copy.shape) == 4:
         copy = np.squeeze(copy, 0)
-    return np.clip(copy, 0, 255).astype(np.uint8)
+    unprocessed = np.clip(copy, 0, 255).astype(np.uint8)
+    return Image.fromarray(unprocessed, 'RGB')
