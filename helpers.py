@@ -70,6 +70,33 @@ def weighted_loss(style, content, targets, loss_weights):
     
     return style_loss + content_loss
 
+def multiple_weighted_loss(style, content, targets, loss_weights):
+    """
+    Calculates a loss weighted between multiple style reconstruction losses 
+    and content reconstruction loss. 
+    params:
+        style - a tensor representing the style outputs 
+        content - a tensor representing the content outputs
+        targets - a tuple where the first element is a list of target style outputs 
+            (the style output of the style images) and the second element is 
+            the target content output (the content output of the content image)
+        loss_weights - a tuple where the first element is the weight given to 
+            the style reconstruction loss and the second element is the weight 
+            given to the content reconstruction loss.
+    output: a float representing the weighted loss
+    """
+    style_losses = [[tf.reduce_mean((style[i]-targets[0][j][i])**2) 
+                        for i in range(len(style))] for j in range(len(targets[0]))]
+    style_loss = tf.reduce_sum(style_losses)
+    style_loss = style_loss * loss_weights[0] / (len(style) * len(targets[0]))
+
+    content_losses = [tf.reduce_mean((content[i]-targets[1][i])**2) 
+                        for i in range(len(content))]
+    content_loss = tf.reduce_sum(content_losses)
+    content_loss = content_loss * loss_weights[1] / len(content)
+    
+    return style_loss + content_loss
+
 def import_image(file_path):
     """
     Imports an image from a file path and pre-processes it for VGG.
