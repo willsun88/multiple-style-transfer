@@ -4,10 +4,11 @@ import hyperparameters as hyp
 from os import mkdir, path
 from tqdm import trange
 
-def train(style_img_path, content_img_path):
+def average_merge_train(style_img_paths, content_img_path):
     """
     Runs the training process using the hyperparameters given in 
-    hyperparameters.py
+    hyperparameters.py, merging multiple styles by averaging their 
+    style outputs from the VGG19 model.
     """
 
     # Creates the result directory, where result images are stored
@@ -15,13 +16,31 @@ def train(style_img_path, content_img_path):
         mkdir("results")
     
     # Import and process the images using helper functions
-    style_img = import_image(style_img_path)
+    style_images = []
+    for p in style_img_paths:
+        style_images.append(import_image(p))
     content_img = import_image(content_img_path)
 
-    # Define the model and the targets for our style and content, and
-    # make content a variable for backpropogation
+    # Define the model
     model = VGG_Model(hyp.content_layers, hyp.style_layers)
-    targets = (model.call(style_img)[0], model.call(content_img)[1])
+
+    # Create the average style
+    styles = []
+    for starting_style_img in style_images:
+        styles.append(model.call(starting_style_img)[0])
+    target_style = []
+    for i in range(len(styles[0])):
+        curr = None
+        for starting_style in styles:
+            if curr is None:
+                curr = starting_style[i]
+            else:
+                curr += starting_style[i]
+        curr /= len(styles)
+        target_style.append(curr)
+    targets = (target_style, model.call(content_img)[1])
+
+    # Make content a variable for backpropogation
     content_img = tf.Variable(content_img, dtype=tf.float32)
 
     # Save what our image looks like before iteration
@@ -47,6 +66,6 @@ def train(style_img_path, content_img_path):
 
 if __name__ == "__main__":
     # Run our training loop on some images
-    style_img = 'data/monet.jpg'
-    input_img = 'data/tompkin.jpg'
-    train(style_img, input_img)
+    style_img = ['data/van_gogh/starry_night.jpg', 'data/van_gogh/rhone.jpg']
+    input_img = 'data/labrador.jpg'
+    average_merge_train(style_img, input_img)
