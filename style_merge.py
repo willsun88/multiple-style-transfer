@@ -116,14 +116,19 @@ def multiple_loss_merge_train(style_img_paths, content_img_path):
 
 if __name__ == "__main__":
     # Run our training loop on some images
+    # style_img = [
+    #     'data/van_gogh/starry_night.jpg', 
+    #     'data/van_gogh/rhone.jpg',
+    #     'data/van_gogh/field.jpg',
+    #     'data/van_gogh/orchard.jpg',
+    #     'data/van_gogh/seascape.jpg',
+    #     'data/van_gogh/wheat.jpg',
+    # ]
     style_img = [
-        'data/van_gogh/starry_night.jpg', 
-        'data/van_gogh/rhone.jpg',
-        'data/van_gogh/field.jpg',
-        'data/van_gogh/orchard.jpg',
-        'data/van_gogh/seascape.jpg',
-        'data/van_gogh/wheat.jpg',
-        ]
-    input_img = 'data/labrador.jpg'
+        'data/kandinsky.jpg',
+        'data/monet.jpg',
+        'data/udnie.jpg'
+    ]
+    input_img = 'data/tompkin.jpg'
     average_merge_train(style_img, input_img)
     # multiple_loss_merge_train(style_img, input_img)
