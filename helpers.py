@@ -15,18 +15,11 @@ class VGG_Model(tf.keras.models.Model):
     """
     Class to run the VGG model on style/content images.
     """
-    def __init__(self):
+    def __init__(self, content_layers, style_layers):
         super(VGG_Model, self).__init__()
         # Define the blocks we will use to represent content and style.
-        # Taken from the paper's choice of blocks from VGG19.
-        self.content_layers = ['block5_conv2'] 
-        self.style_layers = [
-            'block1_conv1',
-            'block2_conv1',
-            'block3_conv1', 
-            'block4_conv1', 
-            'block5_conv1'
-        ]
+        self.content_layers = content_layers
+        self.style_layers = style_layers
 
         # Initialize a VGG19 model that will return the layers we want.
         vgg = VGG19(include_top=False, weights='imagenet')
