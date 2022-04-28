@@ -11,8 +11,8 @@ def train(style_img_path, content_img_path):
     """
 
     # Creates the result directory, where result images are stored
-    if not path.isdir("results"):
-        mkdir("results")
+    if not path.isdir("outputs"):
+        mkdir("outputs")
     
     # Import and process the images using helper functions
     style_img = import_image(style_img_path)
@@ -25,7 +25,7 @@ def train(style_img_path, content_img_path):
     content_img = tf.Variable(content_img, dtype=tf.float32)
 
     # Save what our image looks like before iteration
-    unprocess_image(content_img).save('results/pre_transfer.png')
+    unprocess_image(content_img).save('outputs/pre_transfer.png')
 
     # Training loop (using a progress bar via tqdm)
     t = trange(hyp.num_epochs)
@@ -40,13 +40,13 @@ def train(style_img_path, content_img_path):
 
         # Every save_every iterations, we save a result image
         if (i % hyp.save_every == 0):
-            unprocess_image(content_img).save(f'results/transfer_{i}.png')
+            unprocess_image(content_img).save(f'outputs/transfer_{i}.png')
     
     # Save the final results
-    unprocess_image(content_img).save('results/post_transfer.png')
+    unprocess_image(content_img).save('outputs/post_transfer.png')
 
 if __name__ == "__main__":
     # Run our training loop on some images
-    style_img = 'data/monet.jpg'
+    style_img = 'data/udnie.jpg'
     input_img = 'data/tompkin.jpg'
     train(style_img, input_img)

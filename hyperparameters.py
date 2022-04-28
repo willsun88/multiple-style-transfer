@@ -4,6 +4,7 @@ max_dim = 512
 # The weights for our losses
 # loss_weights = (1e-2, 1e4)
 loss_weights = (1e4, 1)
+# loss_weights = (1e2, 1)
 
 # Number of epochs run
 num_epochs = 1000
@@ -30,3 +31,4 @@ style_layers = [
 # Taken from the paper's choice of blocks from VGG19.
 # content_layers = ['block5_conv2'] 
 content_layers = ['block2_conv1']
+# content_layers = ['block3_conv2']
