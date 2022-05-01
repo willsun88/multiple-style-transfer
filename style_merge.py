@@ -101,7 +101,8 @@ def multiple_loss_merge_train(style_img_paths, content_img_path):
     for i in t:
         with tf.GradientTape() as tape:
             style, content = model(content_img)
-            loss = multiple_weighted_loss(style, content, targets, hyp.loss_weights)
+            loss = multiple_weighted_loss(style, content, targets, 
+                hyp.loss_weights, content_img)
         grad = tape.gradient(loss, content_img)
         model.optim.apply_gradients([(grad, content_img)])
         content_img.assign(tf.clip_by_value(content_img, 0, 1))

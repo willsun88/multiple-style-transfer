@@ -1,8 +1,26 @@
 import tensorflow as tf
 from tensorflow.keras.applications import vgg19, VGG19
+from keras.applications.inception_resnet_v2 import InceptionResNetV2
+from keras.layers import Dense, Dropout
+from keras.models import Model
 from PIL import Image
 import numpy as np
 import hyperparameters as hyp
+
+def nima_init():
+    """
+    Initializes and returns the NIMA model.
+    """
+    # Define model
+    NIMA_base = InceptionResNetV2(input_shape=(None, None, 3), include_top=False, 
+        pooling='avg', weights=None)
+    layer_1 = Dropout(0.75)(NIMA_base.output)
+    outp = Dense(10, activation='softmax')(layer_1)
+    
+    # Combine model and load weights
+    final_model = Model(NIMA_base.input, outp)
+    final_model.load_weights('NIMA/inception_resnet_weights.h5')
+    return final_model
 
 def gram_mat(x):
     """
@@ -43,10 +61,10 @@ class VGG_Model(tf.keras.models.Model):
         style = [gram_mat(layer) for layer in style]
         return (style, content)
 
-def weighted_loss(style, content, targets, loss_weights):
+def weighted_loss(style, content, targets, loss_weights, content_img):
     """
-    Calculates a loss weighted between style reconstruction loss and 
-    content reconstruction loss. 
+    Calculates a loss weighted between style reconstruction loss, content 
+    reconstruction loss, and total variation loss. 
     params:
         style - a tensor representing the style outputs 
         content - a tensor representing the content outputs
@@ -54,8 +72,10 @@ def weighted_loss(style, content, targets, loss_weights):
             (the style output of the style image) and the second element is 
             the target content output (the content output of the content image)
         loss_weights - a tuple where the first element is the weight given to 
-            the style reconstruction loss and the second element is the weight 
-            given to the content reconstruction loss.
+            the style reconstruction loss, the second element is the weight 
+            given to the content reconstruction loss, and the third element
+            is the weight given to the total variation loss.
+        content_img - a tensor of the image we are transferring style onto
     output: a float representing the weighted loss
     """
     style_losses = [tf.reduce_mean((style[i]-targets[0][i])**2) 
@@ -68,12 +88,15 @@ def weighted_loss(style, content, targets, loss_weights):
     content_loss = tf.reduce_sum(content_losses)
     content_loss = content_loss * loss_weights[1] / len(content)
     
-    return style_loss + content_loss
+    tv_loss = tf.image.total_variation(content_img)
+    tv_loss *= loss_weights[2]
 
-def multiple_weighted_loss(style, content, targets, loss_weights):
+    return style_loss + content_loss + tv_loss
+
+def multiple_weighted_loss(style, content, targets, loss_weights, content_img):
     """
-    Calculates a loss weighted between multiple style reconstruction losses 
-    and content reconstruction loss. 
+    Calculates a loss weighted between multiple style reconstruction losses,
+    content reconstruction loss, and total variation loss. 
     params:
         style - a tensor representing the style outputs 
         content - a tensor representing the content outputs
@@ -81,8 +104,10 @@ def multiple_weighted_loss(style, content, targets, loss_weights):
             (the style output of the style images) and the second element is 
             the target content output (the content output of the content image)
         loss_weights - a tuple where the first element is the weight given to 
-            the style reconstruction loss and the second element is the weight 
-            given to the content reconstruction loss.
+            the style reconstruction loss, the second element is the weight 
+            given to the content reconstruction loss, and the third element
+            is the weight given to the total variation loss.
+        content_img - a tensor of the image we are transferring style onto
     output: a float representing the weighted loss
     """
     style_losses = [[tf.reduce_mean((style[i]-targets[0][j][i])**2) 
@@ -94,8 +119,47 @@ def multiple_weighted_loss(style, content, targets, loss_weights):
                         for i in range(len(content))]
     content_loss = tf.reduce_sum(content_losses)
     content_loss = content_loss * loss_weights[1] / len(content)
+
+    tv_loss = tf.image.total_variation(content_img)
+    tv_loss *= loss_weights[2]
     
-    return style_loss + content_loss
+    return style_loss + content_loss + tv_loss
+
+def photo_weighted_loss(style, content, targets, loss_weights, content_img, NIMA):
+    """
+    Calculates a loss weighted between style reconstruction loss, content 
+    reconstruction loss, and NIMA loss. 
+    params:
+        style - a tensor representing the style outputs 
+        content - a tensor representing the content outputs
+        targets - a tuple where the first element is the target style output 
+            (the style output of the style image) and the second element is 
+            the target content output (the content output of the content image)
+        loss_weights - a tuple where the first element is the weight given to 
+            the style reconstruction loss, the second element is the weight 
+            given to the content reconstruction loss, and the third element
+            is the weight given to the NIMA loss.
+        content_img - a tensor of the image we are transferring style onto
+        NIMA - a keras.Model instance that represents the NIMA model
+    output: a float representing the weighted loss
+    """
+    style_losses = [tf.reduce_mean((style[i]-targets[0][i])**2) 
+                        for i in range(len(style))]
+    style_loss = tf.reduce_sum(style_losses)
+    style_loss = style_loss * loss_weights[0] / len(style)
+
+    content_losses = [tf.reduce_mean((content[i]-targets[1][i])**2) 
+                        for i in range(len(content))]
+    content_loss = tf.reduce_sum(content_losses)
+    content_loss = content_loss * loss_weights[1] / len(content)
+    
+    nima_process_img = (content_img * 2.0) - 1.0
+    nima_out = NIMA(nima_process_img)
+    nima_loss = tf.identity(10.0 - tf.reduce_sum(tf.range(1, 11, dtype=tf.float32) 
+        * tf.squeeze(nima_out)))
+    nima_loss *= loss_weights[2]
+
+    return style_loss + content_loss + nima_loss
 
 def import_image(file_path):
     """

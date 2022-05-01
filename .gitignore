@@ -130,3 +130,6 @@ dmypy.json
 
 # Image folders
 outputs/
+
+# Weight folders
+NIMA/
