@@ -215,7 +215,7 @@ if __name__ == "__main__":
     # ]
     style_img = [
         'data/van_gogh/starry_night.jpg', 
-        'data/van_gogh/rhone.jpg',
+        'data/udnie.jpg',
     ]
     input_img = 'data/labrador.jpg'
     # average_merge_train(style_img, input_img)
