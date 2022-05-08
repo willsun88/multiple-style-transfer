@@ -140,7 +140,7 @@ def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5):
     model = VGG_Model(hyp.content_layers, hyp.style_layers)
 
     # Split the image, define gradient
-    splits = np.array_split(content_img, 5, axis=1)
+    splits = np.array_split(content_img, num_splits, axis=1)
     gradients = np.linspace(0, 1, num=num_splits)
 
     split_results = []
@@ -188,14 +188,14 @@ def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5):
 
 if __name__ == "__main__":
     # Run our training loop on some images
-    # style_img = [
-    #     'data/van_gogh/starry_night.jpg', 
-    #     'data/van_gogh/rhone.jpg',
-    #     'data/van_gogh/field.jpg',
-    #     'data/van_gogh/orchard.jpg',
-    #     'data/van_gogh/seascape.jpg',
-    #     'data/van_gogh/wheat.jpg',
-    # ]
+    style_img = [
+        'data/van_gogh/starry_night.jpg', 
+        'data/van_gogh/rhone.jpg',
+        'data/van_gogh/field.jpg',
+        'data/van_gogh/orchard.jpg',
+        'data/van_gogh/seascape.jpg',
+        'data/van_gogh/wheat.jpg',
+    ]
     # style_img = [
     #     'data/kandinsky.jpg',
     #     'data/monet.jpg',
@@ -213,11 +213,11 @@ if __name__ == "__main__":
     #     'data/time_of_day/nighttime_8.jpg',
     #     'data/time_of_day/nighttime_9.jpg',
     # ]
-    style_img = [
-        'data/van_gogh/starry_night.jpg', 
-        'data/udnie.jpg',
-    ]
+    # style_img = [
+    #     'data/van_gogh/starry_night.jpg', 
+    #     'data/udnie.jpg',
+    # ]
     input_img = 'data/labrador.jpg'
     # average_merge_train(style_img, input_img)
     # multiple_loss_merge_train(style_img, input_img)
-    cut_image_merge_train(style_img, input_img)
+    cut_image_merge_train(style_img, input_img, num_splits=5)

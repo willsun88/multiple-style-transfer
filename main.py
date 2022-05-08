@@ -48,6 +48,6 @@ def train(style_img_path, content_img_path):
 
 if __name__ == "__main__":
     # Run our training loop on some images
-    style_img = 'data/time_of_day/nighttime_1.jpg'
-    input_img = 'data/time_of_day/daytime.jpg'
+    style_img = 'data/van_gogh/starry_night.jpg'
+    input_img = 'data/labrador.jpg'
     train(style_img, input_img)
