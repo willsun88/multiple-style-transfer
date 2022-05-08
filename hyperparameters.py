@@ -12,7 +12,8 @@ loss_weights = (1, 1, 1)
 photo_loss_weights = (1e2, 1, 1e5)
 
 # Number of epochs run
-num_epochs = 1000
+# num_epochs = 1000
+num_epochs = 100
 
 # Number of iterations until we save
 save_every = 100
