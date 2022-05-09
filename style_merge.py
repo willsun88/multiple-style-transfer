@@ -4,8 +4,9 @@ import hyperparameters as hyp
 from os import mkdir, path
 from tqdm import trange
 import numpy as np
+import matplotlib.pyplot as plt
 
-def average_merge_train(style_img_paths, content_img_path):
+def average_merge_train(style_img_paths, content_img_path, loss_graph=False):
     """
     Runs the training process using the hyperparameters given in 
     hyperparameters.py, merging multiple styles by averaging their 
@@ -48,12 +49,17 @@ def average_merge_train(style_img_paths, content_img_path):
     unprocess_image(content_img).save('outputs/pre_transfer.png')
 
     # Training loop (using a progress bar via tqdm)
+    losses = []
     t = trange(hyp.num_epochs)
     for i in t:
         with tf.GradientTape() as tape:
             style, content = model(content_img)
             loss = weighted_loss(style, content, targets, hyp.loss_weights,
                 content_img)
+        
+        if loss_graph:
+            losses.append(loss)
+        
         grad = tape.gradient(loss, content_img)
         model.optim.apply_gradients([(grad, content_img)])
         content_img.assign(tf.clip_by_value(content_img, 0, 1))
@@ -63,10 +69,24 @@ def average_merge_train(style_img_paths, content_img_path):
         if (i % hyp.save_every == 0):
             unprocess_image(content_img).save(f'outputs/transfer_{i}.png')
     
+    # Graph losses if necessary
+    if loss_graph:
+        plt.plot(np.arange(len(losses)), losses)
+        plt.ylabel('Loss')
+        plt.xlabel('Training Step')
+        plt.title('Loss Curve For Average-Target Style Transfer')
+        plt.show()
+
+        plt.plot(np.arange(len(losses)), np.log(np.array(losses)))
+        plt.ylabel('Log Loss')
+        plt.xlabel('Training Step')
+        plt.title('Log Loss Curve For Average-Target Style Transfer')
+        plt.show()
+
     # Save the final results
     unprocess_image(content_img).save('outputs/post_transfer.png')
 
-def multiple_loss_merge_train(style_img_paths, content_img_path):
+def multiple_loss_merge_train(style_img_paths, content_img_path, loss_graph=False):
     """
     Runs the training process using the hyperparameters given in 
     hyperparameters.py, merging multiple styles by getting the style
@@ -99,12 +119,17 @@ def multiple_loss_merge_train(style_img_paths, content_img_path):
     unprocess_image(content_img).save('outputs/pre_transfer.png')
 
     # Training loop (using a progress bar via tqdm)
+    losses = []
     t = trange(hyp.num_epochs)
     for i in t:
         with tf.GradientTape() as tape:
             style, content = model(content_img)
             loss = multiple_weighted_loss(style, content, targets, 
                 hyp.loss_weights, content_img)
+        
+        if loss_graph:
+            losses.append(loss)
+
         grad = tape.gradient(loss, content_img)
         model.optim.apply_gradients([(grad, content_img)])
         content_img.assign(tf.clip_by_value(content_img, 0, 1))
@@ -114,10 +139,24 @@ def multiple_loss_merge_train(style_img_paths, content_img_path):
         if (i % hyp.save_every == 0):
             unprocess_image(content_img).save(f'outputs/transfer_{i}.png')
     
+    # Graph losses if necessary
+    if loss_graph:
+        plt.plot(np.arange(len(losses)), losses)
+        plt.ylabel('Loss')
+        plt.xlabel('Training Step')
+        plt.title('Loss Curve For Multiple-MSE Style Transfer')
+        plt.show()
+
+        plt.plot(np.arange(len(losses)), np.log(np.array(losses)))
+        plt.ylabel('Log Loss')
+        plt.xlabel('Training Step')
+        plt.title('Log Loss Curve For Multiple-MSE Style Transfer')
+        plt.show()
+
     # Save the final results
     unprocess_image(content_img).save('outputs/post_transfer.png')
 
-def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5):
+def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5, loss_graph=False):
     """
     Runs the training process using the hyperparameters given in 
     hyperparameters.py, merging multiple styles by splitting the image
@@ -156,8 +195,8 @@ def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5):
         for starting_style_img in style_images:
             styles.append(model.call(starting_style_img)[0])
         target_style = []
-        for i in range(len(styles[0])):
-            curr = styles[0][i] * style1_grad + styles[1][i] * style2_grad
+        for j in range(len(styles[0])):
+            curr = styles[0][j] * style1_grad + styles[1][j] * style2_grad
             target_style.append(curr)
         targets = (target_style, model.call(curr_content_split)[1])
 
@@ -165,17 +204,36 @@ def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5):
         curr_content_split = tf.Variable(curr_content_split, dtype=tf.float32)
 
         # Training loop (using a progress bar via tqdm)
+        losses = []
         t = trange(hyp.num_epochs)
-        for i in t:
+        for j in t:
             with tf.GradientTape() as tape:
                 style, content = model(curr_content_split)
                 loss = weighted_loss(style, content, targets, hyp.loss_weights,
                     curr_content_split)
+            
+            if loss_graph:
+                losses.append(loss)
+
             grad = tape.gradient(loss, curr_content_split)
             model.optim.apply_gradients([(grad, curr_content_split)])
             curr_content_split.assign(tf.clip_by_value(curr_content_split, 0, 1))
             t.set_postfix(loss=loss.numpy())
         
+        # Graph losses if necessary and if first split
+        if loss_graph and i == 0:
+            plt.plot(np.arange(len(losses)), losses)
+            plt.ylabel('Loss')
+            plt.xlabel('Training Step')
+            plt.title('Loss Curve For Gradient Style Transfer')
+            plt.show()
+
+            plt.plot(np.arange(len(losses)), np.log(np.array(losses)))
+            plt.ylabel('Log Loss')
+            plt.xlabel('Training Step')
+            plt.title('Log Loss Curve For Gradient Style Transfer')
+            plt.show()
+
         # Append to result list
         split_results.append(curr_content_split)
     
@@ -188,14 +246,14 @@ def cut_image_merge_train(style_img_paths, content_img_path, num_splits=5):
 
 if __name__ == "__main__":
     # Run our training loop on some images
-    style_img = [
-        'data/van_gogh/starry_night.jpg', 
-        'data/van_gogh/rhone.jpg',
-        'data/van_gogh/field.jpg',
-        'data/van_gogh/orchard.jpg',
-        'data/van_gogh/seascape.jpg',
-        'data/van_gogh/wheat.jpg',
-    ]
+    # style_img = [
+    #     'data/van_gogh/starry_night.jpg', 
+    #     'data/van_gogh/rhone.jpg',
+    #     'data/van_gogh/field.jpg',
+    #     'data/van_gogh/orchard.jpg',
+    #     'data/van_gogh/seascape.jpg',
+    #     'data/van_gogh/wheat.jpg',
+    # ]
     # style_img = [
     #     'data/kandinsky.jpg',
     #     'data/monet.jpg',
@@ -213,11 +271,11 @@ if __name__ == "__main__":
     #     'data/time_of_day/nighttime_8.jpg',
     #     'data/time_of_day/nighttime_9.jpg',
     # ]
-    # style_img = [
-    #     'data/van_gogh/starry_night.jpg', 
-    #     'data/udnie.jpg',
-    # ]
-    input_img = 'data/labrador.jpg'
-    # average_merge_train(style_img, input_img)
-    # multiple_loss_merge_train(style_img, input_img)
-    cut_image_merge_train(style_img, input_img, num_splits=5)
+    style_img = [
+        'data/van_gogh/starry_night.jpg', 
+        'data/udnie.jpg',
+    ]
+    input_img = 'data/chicago.jpg'
+    # average_merge_train(style_img, input_img, loss_graph=True)
+    # multiple_loss_merge_train(style_img, input_img, loss_graph=True)
+    cut_image_merge_train(style_img, input_img, num_splits=10, loss_graph=True)
